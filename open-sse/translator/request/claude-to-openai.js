@@ -10,6 +10,27 @@ export function claudeToOpenAIRequest(model, body, stream) {
     stream: stream
   };
 
+  // Claude thinking (thinking.type + budget_tokens) -> OpenAI-style reasoning_effort.
+  // This lets downstream providers like Codex/OpenAI honor the user's "thinking" toggle.
+  if (!body.reasoning_effort) {
+    const t = body.thinking;
+    if (t && typeof t === "object" && !Array.isArray(t)) {
+      if (t.type === "disabled") {
+        result.reasoning_effort = "none";
+      } else if (t.type === "enabled") {
+        const budget = Number(t.budget_tokens);
+        if (Number.isFinite(budget) && budget > 0) {
+          if (budget <= 2048) result.reasoning_effort = "low";
+          else if (budget <= 16384) result.reasoning_effort = "medium";
+          else result.reasoning_effort = "high";
+        } else {
+          // No explicit budget -> pick a sane default (most UIs treat thinking=on as mid effort).
+          result.reasoning_effort = "medium";
+        }
+      }
+    }
+  }
+
   // Max tokens
   if (body.max_tokens) {
     result.max_tokens = adjustMaxTokens(body);

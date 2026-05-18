@@ -194,10 +194,14 @@ export class CodexExecutor extends BaseExecutor {
 
     // Priority: explicit reasoning.effort > reasoning_effort param > model suffix > default (medium)
     if (!body.reasoning) {
-      const effort = body.reasoning_effort || modelEffort || 'low';
+      const requested = body.reasoning_effort || modelEffort || "medium";
+      const effort = effortLevels.includes(requested) ? requested : "medium";
       body.reasoning = { effort, summary: "auto" };
-    } else if (!body.reasoning.summary) {
-      body.reasoning.summary = "auto";
+    } else {
+      if (!body.reasoning.summary) body.reasoning.summary = "auto";
+      if (body.reasoning?.effort && !effortLevels.includes(body.reasoning.effort)) {
+        body.reasoning.effort = "medium";
+      }
     }
     delete body.reasoning_effort;
 

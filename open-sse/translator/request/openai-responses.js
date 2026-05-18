@@ -309,6 +309,10 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
   if (body.temperature !== undefined) result.temperature = body.temperature;
   if (body.max_tokens !== undefined) result.max_tokens = body.max_tokens;
   if (body.top_p !== undefined) result.top_p = body.top_p;
+  // Preserve reasoning/thinking hints for providers like Codex that read it at the executor layer.
+  if (body.reasoning_effort !== undefined) result.reasoning_effort = body.reasoning_effort;
+  if (body.reasoning && typeof body.reasoning === "object") result.reasoning = body.reasoning;
+  if (body.thinking && typeof body.thinking === "object") result.thinking = body.thinking;
 
   return result;
 }

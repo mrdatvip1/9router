@@ -570,8 +570,21 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
 
   // Reasoning events (convert to content or skip)
   if (eventType === "response.reasoning_summary_text.delta") {
-    // Optionally include reasoning as content, or skip
-    return null;
+    const delta = data.delta || "";
+    if (!delta) return null;
+    // Expose as OpenAI Chat Completions `reasoning_content` so downstream formatters
+    // (e.g. OpenAI -> Claude) can render it as a thinking block.
+    return {
+      id: state.chatId,
+      object: "chat.completion.chunk",
+      created: state.created,
+      model: state.model || "unknown",
+      choices: [{
+        index: 0,
+        delta: { reasoning_content: delta },
+        finish_reason: null
+      }]
+    };
   }
 
   // Ignore other events
