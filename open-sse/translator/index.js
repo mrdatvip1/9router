@@ -52,6 +52,12 @@ function ensureInitialized() {
   require("./response/cursor-to-openai.js");
   require("./response/ollama-to-openai.js");
   require("./response/commandcode-to-openai.js");
+
+  // Inject modules: xử lý <thinking>...</thinking> tags trong delta.content (merge-safe)
+  // Phải require SAU các translator gốc để override đúng registry entry.
+  require("./response/openai-to-claude-thinking-inject.js");
+  require("./response/openai-to-responses-thinking-inject.js");
+  require("./response/kiro-to-openai-thinking-inject.js");
 }
 
 // Strip specific content types from messages (explicit opt-in via strip[] in PROVIDER_MODELS)
