@@ -195,6 +195,27 @@ function normalizeToolParameters(params) {
   return params;
 }
 
+function extractTextContent(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map(part => {
+        if (typeof part === "string") return part;
+        if (!part || typeof part !== "object") return "";
+        if (typeof part.text === "string") return part.text;
+        if (typeof part.content === "string") return part.content;
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (content && typeof content === "object") {
+    if (typeof content.text === "string") return content.text;
+    if (typeof content.content === "string") return content.content;
+  }
+  return "";
+}
+
 /**
  * Convert OpenAI Chat Completions to OpenAI Responses API format
  */
@@ -209,18 +230,15 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
     store: false
   };
 
-  // Extract system message as instructions
-  let hasSystemMessage = false;
+  // Extract system/developer messages as Responses API instructions.
+  const instructionParts = [];
   const messages = body.messages || [];
 
   for (const msg of messages) {
-    if (msg.role === "system") {
-      // Use first system message as instructions
-      if (!hasSystemMessage) {
-        result.instructions = typeof msg.content === "string" ? msg.content : "";
-        hasSystemMessage = true;
-      }
-      continue; // Skip system messages in input
+    if (msg.role === "system" || msg.role === "developer") {
+      const text = extractTextContent(msg.content).trim();
+      if (text) instructionParts.push(text);
+      continue; // Skip instruction messages in input
     }
 
     // Convert user/assistant messages to input items
@@ -284,10 +302,8 @@ export function openaiToOpenAIResponsesRequest(model, body, stream, credentials)
     }
   }
 
-  // If no system message, leave instructions empty (will be filled by executor)
-  if (!hasSystemMessage) {
-    result.instructions = "";
-  }
+  // If no instruction message has text, leave empty for provider defaults.
+  result.instructions = instructionParts.join("\n\n");
 
   // Convert tools format
   if (body.tools && Array.isArray(body.tools)) {
